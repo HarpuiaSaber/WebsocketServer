@@ -1,5 +1,5 @@
 package service;
 
 public interface DecisionTreeService {
-	int water(double temp, double humidity);
+	int makeDecision(double temp, double humidity);
 }

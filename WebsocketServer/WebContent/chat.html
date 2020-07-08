@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Demo websocket</title>
+
+</head>
+<body>
+	<div id="chartContainer" style="height: 500px; width: 100%;"></div>
+	<div><button onclick="sendMessage(1)">Bật</button>
+	<button onclick="sendMessage(0)">Tắt</button>
+	<button onclick="sendMessage(2)">Tự động</button></div>
+</body>
+<script src="https://canvasjs.com/assets/script/canvasjs.min.js"></script>
+<script>
+	var xVal = 0;
+	var updateInterval = 1000;
+	var dataLength = 20; // number of dataPoints visible at any point
+	var dps = []; // dataPoints
+	var dps2 = [];
+
+	var chart = new CanvasJS.Chart("chartContainer", {
+		title : {
+			text : "Room temperature and humidity 505A2"
+		},
+		axisY : {
+			includeZero : false
+		},
+		axisX : {
+			minimum : 0
+		},
+		data : [ {
+			type : "line",
+			name : "Độ ẩm",
+			showInLegend : true,
+			dataPoints : dps
+		}, {
+			type : "line",
+			name : "Nhiệt độ",
+			showInLegend : true,
+			dataPoints : dps2
+		} ]
+	});
+
+	var updateChart = function(yVal, yVal2) {
+		dps.push({
+			x : xVal,
+			y : yVal
+		});
+		dps2.push({
+			x : xVal,
+			y : yVal2
+		});
+		xVal++;
+
+		chart.render();
+	};
+
+	var websocket = new WebSocket(
+			"ws://192.168.0.104:8080/WebsocketServer/server");
+	websocket.onopen = function(message) {
+		processOpen(message);
+	};
+	websocket.onmessage = function(message) {
+		processMessage(message);
+	};
+	websocket.onclose = function(message) {
+		processClose(message);
+	};
+	websocket.onerror = function(message) {
+		processError(message);
+	};
+
+	function processOpen(message) {
+
+	}
+	function processMessage(message) {
+		var receive = message.data.split(",");
+		updateChart(parseFloat(receive[1]), parseFloat(receive[0]));
+	}
+	function processClose(message) {
+
+	}
+	function processError(message) {
+
+	}
+
+	function sendMessage(message) {
+		if (typeof websocket != 'undefined'
+				&& websocket.readyState == WebSocket.OPEN) {
+			websocket.send(message);
+		}
+	}
+</script>
+</html>
