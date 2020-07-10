@@ -2,7 +2,6 @@ package websocket;
 
 import java.io.IOException;
 import java.util.Collections;
-import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -15,11 +14,12 @@ import javax.websocket.server.ServerEndpoint;
 
 import service.DecisionTreeService;
 import service.impl.DecisionTreeServiceImpl;
-import utils.DateTimeUtils;
 
 @ServerEndpoint(value = "/server")
 public class WebSocketServerEndpoint {
 	static Set<Session> users = Collections.synchronizedSet(new HashSet<Session>());
+
+	private Session esp8266;
 
 	private DecisionTreeService dService = new DecisionTreeServiceImpl();
 	private boolean auto = false;
@@ -31,22 +31,27 @@ public class WebSocketServerEndpoint {
 
 	@OnMessage
 	public void handleMessage(String message, Session userSession) throws IOException {
-		int sendData = 0;
-		if (message.equals("on")) {
-			sendData = 1;
-		} else if (message.equals("auto")) {
-			auto = true;
-		} else {
-			sendData = 0;
-		}
-		if (auto) {
-			String[] data = message.split(",");
-			sendData = dService.makeDecision(Float.parseFloat(data[0]), Float.parseFloat(data[1]));
-		}
-		for (Session session : users) {
-			if (!session.getId().equals(userSession.getId())) {
-				session.getBasicRemote().sendText(message);
+		if (esp8266 == null) {
+			if (message.equals("ESP8266")) {
+				esp8266 = userSession;
 			}
+		}
+		if (userSession.getId() == esp8266.getId()) {
+			for (Session session : users) {
+				if (!session.getId().equals(esp8266.getId())) {
+					session.getBasicRemote().sendText(message);
+				}
+			}
+			if (auto) {
+				String[] data = message.split(",");
+				String control = String.valueOf(dService.makeDecision(Float.parseFloat(data[0]), Float.parseFloat(data[1])));
+				esp8266.getBasicRemote().sendText(control);
+			}			
+		} else {
+			if (message.equals("2")) {
+				auto = true;
+			}
+			esp8266.getBasicRemote().sendText(message);
 		}
 	}
 
